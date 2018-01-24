@@ -1,71 +1,55 @@
 package com.epam.gomel.services;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.BucketNotificationConfiguration;
-import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
+import com.amazonaws.services.s3.transfer.Upload;
 import com.jayway.jsonpath.JsonPath;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Random;
 
 public class S3Services {
-    AmazonS3 s3 = new AmazonS3Client();
-    public S3Services uploadFileToS3(String bucketName, String attribute, File file) {
-        try {
+    AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_2).build();
+    TransferManager tm = TransferManagerBuilder.standard().withS3Client(s3).build();
+    public String uploadFileToS3(String bucketName, String filePath) throws InterruptedException {
+            File file = new File(filePath);
+            String fileExtension = FilenameUtils.getExtension(file.getName());
+            String fileName = String.valueOf(new Random().nextInt()) + "." + fileExtension;
             System.out.println("Uploading a new object to S3 from a file");
-            s3.putObject(new PutObjectRequest(bucketName, attribute, file));
-            System.out.println(attribute + " file was uploaded succesfully");
-        }  catch (AmazonServiceException ase) {
-            System.out.println("Error Message:    " + ase.getMessage());
-            System.out.println("HTTP Status Code: " + ase.getStatusCode());
-            System.out.println("AWS Error Code:   " + ase.getErrorCode());
-            System.out.println("Error Type:       " + ase.getErrorType());
-            System.out.println("Request ID:       " + ase.getRequestId());
-        } catch (AmazonClientException ace) {
-            System.out.println("Error Message: " + ace.getMessage());
-        }
-        return this;
+            Upload upload = tm.upload(bucketName, fileName, file);
+            upload.waitForCompletion();
+            System.out.println(fileName + " file was uploaded succesfully");
+        return fileName;
     }
 
-    public S3Services removeFileFromS3(String bucketName, String attribute) {
-        try {
-            System.out.println("Deleting an object");
-            s3.deleteObject(bucketName, attribute);
-            System.out.println(attribute + " file was deleted succesfully");
-        }  catch (AmazonServiceException ase) {
-            System.out.println("Error Message:    " + ase.getMessage());
-            System.out.println("HTTP Status Code: " + ase.getStatusCode());
-            System.out.println("AWS Error Code:   " + ase.getErrorCode());
-            System.out.println("Error Type:       " + ase.getErrorType());
-            System.out.println("Request ID:       " + ase.getRequestId());
-        } catch (AmazonClientException ace) {
-            System.out.println("Error Message: " + ace.getMessage());
-        }
-        return this;
+    public Boolean removeFileFromS3(String bucketName, String key) {
+        Boolean result = false;
+            if (s3.doesObjectExist(bucketName, key)) {
+                System.out.println("Deleting an object");
+                s3.deleteObject(bucketName, key);
+                System.out.println(key + " file was deleted succesfully");
+                result = true;
+            } else
+                System.out.println(key + " does not exist or was permanently removed");
+        return result;
     }
 
-    public List<String> getS3Events(String bucketName) {
-        List<String> events = new ArrayList<>();
-        try {
-            BucketNotificationConfiguration notificationConfiguration =
-                    s3.getBucketNotificationConfiguration(bucketName);
-            events =
-                    JsonPath.parse(notificationConfiguration.toString()).read( "$.LambdaEvent.events");
-            } catch (AmazonS3Exception ase) {
-            System.out.println("Error Message:    " + ase.getMessage());
-            System.out.println("HTTP Status Code: " + ase.getStatusCode());
-            System.out.println("AWS Error Code:   " + ase.getErrorCode());
-            System.out.println("Error Type:       " + ase.getErrorType());
-            System.out.println("Request ID:       " + ase.getRequestId());
-            System.out.println("Error XML" + ase.getErrorResponseXml());
-        } catch (AmazonClientException ace) {
-            System.out.println("Error Message: " + ace.getMessage());
-        }
+    public String getS3Events(String bucketName) {
+        String events = new String();
+            if (s3.doesBucketExistV2(bucketName)) {
+                BucketNotificationConfiguration notificationConfiguration =
+                        s3.getBucketNotificationConfiguration(bucketName);
+                events =
+                        JsonPath.parse(notificationConfiguration.toString()).read(
+                                "$.LambdaEvent.events").toString();
+                System.out.println(events);
+            } else
+                System.out.println(bucketName + " does not exist");
         return events;
     }
 }

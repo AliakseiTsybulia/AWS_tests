@@ -2,45 +2,58 @@ package com.epam.gomel;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Properties;
 
 import com.epam.gomel.services.DynamoDBservices;
+import com.epam.gomel.services.LambdaServices;
 import com.epam.gomel.services.S3Services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AWSParameters {
     private Properties properties = new Properties();
     private String bucketName;
-    private List<String> eventActions = Arrays.asList("s3:ObjectCreated:*", "s3:ObjectRemoved:*");
+    private String functionName;
     private S3Services s3Services = new S3Services();
     private DynamoDBservices dynamoDBservices = new DynamoDBservices();
-    private String tableProperties = "[{AttributeName: filePath,AttributeType: S}, " +
-            "{AttributeName: fileType,AttributeType: S}, " +
-            "{AttributeName: originTimeStamp,AttributeType: N}, " +
-            "{AttributeName: packageId,AttributeType: S}]";
+    private LambdaServices lambdaServices = new LambdaServices();
+    private String tableName;
 
     @BeforeEach
-    void init() throws IOException {
+    void initAWSParametersTests() throws IOException {
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("AWS.properties");
         properties.load(is);
         bucketName = properties.getProperty("bucket_name");
+        functionName = properties.getProperty("lambda_function_name");
+        tableName = lambdaServices.getLambdaConfigVariables(functionName).get("InventoryLambda_DYNAMODB_NAME");
     }
 
-    @Test
+    @ParameterizedTest
     @DisplayName("Checking s3 bucket event notifications")
-    void shouldCheckS3BucketEventNotifications() {
-        assertTrue(s3Services.getS3Events(bucketName).containsAll(eventActions));
+    @ValueSource(strings = { "[\"s3:ObjectCreated:*\",\"s3:ObjectRemoved:*\"]" })
+    void shouldCheckS3BucketEventNotifications(String events) {
+        assertTrue(s3Services.getS3Events(bucketName).equals(events));
+    }
+
+    @ParameterizedTest
+    @DisplayName("Checking DynamoDB table properties")
+    @ValueSource(strings = { "[{AttributeName: filePath,AttributeType: S}, " +
+            "{AttributeName: fileType,AttributeType: S}, " +
+            "{AttributeName: originTimeStamp,AttributeType: N}, " +
+            "{AttributeName: packageId,AttributeType: S}]" })
+    void shouldCheckDynamoDBTableProperties(String tableProperties) {
+        assertTrue(dynamoDBservices.CheckDynamoDBTableProperties(tableName, tableProperties));
     }
 
     @Test
-    @DisplayName("Checking DynamoDB table properties")
-    void shouldCheckDynamoDBTableProperties() {
-        assertTrue(dynamoDBservices.CheckDynamoDBTableProperties(tableProperties));
+    @DisplayName("Checking Lambda  environment variables")
+    void shouldCheckLambdaEnvironmentVariableTableName() {
+        assertEquals(tableName, "S3Content");
     }
 }

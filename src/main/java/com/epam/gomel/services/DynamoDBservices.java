@@ -8,9 +8,6 @@ import com.amazonaws.services.dynamodbv2.document.spec.DeleteItemSpec;
 import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec;
 import com.amazonaws.services.dynamodbv2.xspec.ExpressionSpecBuilder;
 
-
-import java.io.File;
-
 import java.util.stream.StreamSupport;
 
 import static com.amazonaws.services.dynamodbv2.xspec.ExpressionSpecBuilder.S;
@@ -18,17 +15,17 @@ import static com.amazonaws.services.dynamodbv2.xspec.ExpressionSpecBuilder.S;
 public class DynamoDBservices {
     private AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().withRegion(Regions.US_EAST_2).build();
     private DynamoDB dynamo = new DynamoDB(client);
+    String searchKey = "filePath";
 
-    public String readFromDynamoDBTable(File searchAttributeValue, String outputAttribute, String tableName,
-                                        String searchAttribute){
+    public Item getItemFromDynamoDBTableByFileName(String tableName, String fileName) {
         Item item = new Item();
         try {
             Table table = dynamo.getTable(tableName);
-            Index index = table.getIndex(searchAttribute + "-index");
+            Index index = table.getIndex(searchKey + "-index");
 
             QuerySpec querySpec = new QuerySpec().withExpressionSpec(
-                    new ExpressionSpecBuilder().withKeyCondition(S(searchAttribute)
-                            .eq(searchAttributeValue.getName())).buildForQuery());
+                    new ExpressionSpecBuilder().withKeyCondition(S(searchKey)
+                            .eq(fileName)).buildForQuery());
 
             ItemCollection<QueryOutcome> ic = index.query(querySpec);
             item = StreamSupport.stream(ic.spliterator(), false).max(
@@ -37,24 +34,18 @@ public class DynamoDBservices {
         } catch (Exception e) {
             System.err.println(e.getMessage());
         }
-        return item.getString(outputAttribute);
+        return item;
     }
 
-    public DynamoDBservices deleteNewDynamoDBTableItemByFileName(File searchAttributeValue, String tableName,
-                                                                 String searchAttribute) {
+    public String readFromDynamoDBTableByFileName(String tableName, String fileName, String outputAttribute){
+        Item item = getItemFromDynamoDBTableByFileName(tableName, fileName);
+        return item != null ? item.getString(outputAttribute) : null;
+    }
+
+    public DynamoDBservices deleteNewDynamoDBTableItemByFileName(String tableName, String fileName) {
+        Table table = dynamo.getTable(tableName);
+        Item item = getItemFromDynamoDBTableByFileName(tableName, fileName);
         try {
-            Table table = dynamo.getTable(tableName);
-            Index index = table.getIndex(searchAttribute + "-index");
-
-            QuerySpec querySpec = new QuerySpec().withExpressionSpec(
-                    new ExpressionSpecBuilder().withKeyCondition(S(searchAttribute)
-                            .eq(searchAttributeValue.getName())).buildForQuery());
-
-            ItemCollection<QueryOutcome> ic = index.query(querySpec);
-            Item item = StreamSupport.stream(ic.spliterator(), false).max(
-                    (v1, v2) -> (int)(v1.getLong("originTimeStamp")
-                            - v2.getLong("originTimeStamp"))).orElse(null);
-
             DeleteItemSpec deleteItemSpec = new DeleteItemSpec()
                     .withPrimaryKey(new PrimaryKey(
                             "packageId", item.getString("packageId"),
@@ -66,7 +57,7 @@ public class DynamoDBservices {
         return this;
     }
 
-    public boolean CheckDynamoDBTableProperties(String expectedProperties) {
+    public boolean CheckDynamoDBTableProperties(String tableName, String expectedProperties) {
         String actualProperties = new String();
         try {
             Table table = dynamo.getTable("S3Content");
