@@ -60,7 +60,7 @@ public class DynamoDBservices {
     public boolean CheckDynamoDBTableProperties(String tableName, String expectedProperties) {
         String actualProperties = new String();
         try {
-            Table table = dynamo.getTable("S3Content");
+            Table table = dynamo.getTable(tableName);
             actualProperties = table.describe().getAttributeDefinitions().toString();
             } catch (Exception e) {
             System.err.println(e.getMessage());

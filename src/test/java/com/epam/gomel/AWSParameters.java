@@ -9,7 +9,6 @@ import com.epam.gomel.services.LambdaServices;
 import com.epam.gomel.services.S3Services;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -51,9 +50,10 @@ public class AWSParameters {
         assertTrue(dynamoDBservices.CheckDynamoDBTableProperties(tableName, tableProperties));
     }
 
-    @Test
+    @ParameterizedTest
     @DisplayName("Checking Lambda  environment variables")
-    void shouldCheckLambdaEnvironmentVariableTableName() {
-        assertEquals(tableName, "S3Content");
+    @ValueSource(strings = { "S3Content" })
+    void shouldCheckLambdaEnvironmentVariableTableName(String actualTableName) {
+        assertEquals(tableName, actualTableName);
     }
 }

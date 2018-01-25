@@ -62,7 +62,8 @@ public class AWSActionsTests {
                     dynamoDBservices.readFromDynamoDBTableByFileName(
                     tableName, fileName, "actionName")));
         } catch (ConditionTimeoutException e) {
-           result = false;
+            result = false;
+            System.out.println(e.getMessage());
         }
         assertTrue(result);
     }
@@ -80,6 +81,7 @@ public class AWSActionsTests {
                         tableName, fileName, "actionName")));
         } catch (ConditionTimeoutException e) {
             result = false;
+            System.out.println(e.getMessage());
         }
         assertTrue(result);
     }
