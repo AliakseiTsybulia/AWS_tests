@@ -42,19 +42,21 @@ public class DynamoDBservices {
         return item != null ? item.getString(outputAttribute) : null;
     }
 
-    public DynamoDBservices deleteNewDynamoDBTableItemByFileName(String tableName, String fileName) {
+    public boolean deleteNewDynamoDBTableItemByFileName(String tableName, String fileName) {
+        boolean result = true;
         Table table = dynamo.getTable(tableName);
         Item item = getItemFromDynamoDBTableByFileName(tableName, fileName);
-        try {
+        if (item != null)  {
             DeleteItemSpec deleteItemSpec = new DeleteItemSpec()
                     .withPrimaryKey(new PrimaryKey(
                             "packageId", item.getString("packageId"),
                             "originTimeStamp", Long.valueOf(item.getJSON("originTimeStamp"))));
             table.deleteItem(deleteItemSpec);
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
+        } else {
+            result = false;
+            System.err.println("Item with file name '" + fileName + "' is not exist");
         }
-        return this;
+        return result;
     }
 
     public boolean CheckDynamoDBTableProperties(String tableName, String expectedProperties) {
