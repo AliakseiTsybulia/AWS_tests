@@ -3,7 +3,6 @@ package com.epam.gomel;
 import com.epam.gomel.services.DynamoDBservices;
 import com.epam.gomel.services.LambdaServices;
 import com.epam.gomel.services.S3Services;
-import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,7 +15,6 @@ import java.io.InputStream;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.awaitility.Awaitility.*;
 
 public class AWSActionsTests {
     private Properties properties = new Properties();
@@ -26,6 +24,7 @@ public class AWSActionsTests {
     private LambdaServices lambdaServices = new LambdaServices();
     private String tableName;
     private String functionName;
+    private String s3FolderPath;
     private static String fileName;
 
     @BeforeEach
@@ -35,19 +34,13 @@ public class AWSActionsTests {
         bucketName = properties.getProperty("bucket_name");
         functionName = properties.getProperty("lambda_function_name");
         tableName = lambdaServices.getLambdaConfigVariables(functionName).get("InventoryLambda_DYNAMODB_NAME");
+        s3FolderPath = "";
     }
 
     @AfterEach
     void cleanUpServicesData() {
-        dynamoDBservices.deleteNewDynamoDBTableItemByFileName(tableName, fileName);
-        if (s3Services.removeFileFromS3(bucketName, fileName))
-            try {
-                await().until(() -> ("ObjectRemoved:Delete").equals(
-                        dynamoDBservices.readFromDynamoDBTableByFileName(
-                                tableName, fileName, "actionName")));
-            } catch (ConditionTimeoutException e) {
-                System.out.println(e.getMessage());
-            }
+        s3Services.removeFileFromS3(bucketName, fileName, s3FolderPath);
+        dynamoDBservices.waitDynamoDBtableItemsByFileName(tableName, fileName, 2);
         dynamoDBservices.deleteNewDynamoDBTableItemByFileName(tableName, fileName);
     }
 
@@ -55,34 +48,16 @@ public class AWSActionsTests {
     @ParameterizedTest
     @ValueSource(strings = { "./src/test/resources/files/testFile.txt" })
     void shouldTrigLambdaAfterUploadingFileToS3(String filePath) throws InterruptedException {
-        boolean result = true;
-        fileName = s3Services.uploadFileToS3(bucketName, filePath);
-        try {
-            await().until(() -> ("ObjectCreated:Put").equals(
-                    dynamoDBservices.readFromDynamoDBTableByFileName(
-                    tableName, fileName, "actionName")));
-        } catch (ConditionTimeoutException e) {
-            result = false;
-            System.out.println(e.getMessage());
-        }
-        assertTrue(result);
+        fileName = s3Services.uploadFileToS3(bucketName, filePath, s3FolderPath);
+        assertTrue(dynamoDBservices.waitDynamoDBtableItemsByFileName(tableName, fileName, 1));
     }
 
     @DisplayName("Checking lambda was triggered after removing uploaded to s3 file")
     @ParameterizedTest
     @ValueSource(strings = { "./src/test/resources/files/testFile.txt" })
     void shouldTrigLambdaAfterRemovingUploadedFileToS3(String filePath) throws InterruptedException {
-        boolean result = true;
-        fileName = s3Services.uploadFileToS3(bucketName, filePath);
-        s3Services.removeFileFromS3(bucketName, fileName);
-        try {
-        await().until(() -> ("ObjectRemoved:Delete").equals(
-                dynamoDBservices.readFromDynamoDBTableByFileName(
-                        tableName, fileName, "actionName")));
-        } catch (ConditionTimeoutException e) {
-            result = false;
-            System.out.println(e.getMessage());
-        }
-        assertTrue(result);
+        fileName = s3Services.uploadFileToS3(bucketName, filePath, s3FolderPath);
+        s3Services.removeFileFromS3(bucketName, fileName, s3FolderPath);
+        assertTrue(dynamoDBservices.waitDynamoDBtableItemsByFileName(tableName, fileName, 2));
     }
 }

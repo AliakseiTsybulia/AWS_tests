@@ -16,22 +16,22 @@ import java.util.Random;
 public class S3Services {
     AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_2).build();
     TransferManager tm = TransferManagerBuilder.standard().withS3Client(s3).build();
-    public String uploadFileToS3(String bucketName, String filePath) throws InterruptedException {
+    public String uploadFileToS3(String bucketName, String filePath, String s3folder) throws InterruptedException {
             File file = new File(filePath);
             String fileExtension = FilenameUtils.getExtension(file.getName());
             String fileName = String.valueOf(new Random().nextInt()) + "." + fileExtension;
             System.out.println("Uploading a new object to S3 from a file");
-            Upload upload = tm.upload(bucketName, fileName, file);
+            Upload upload = tm.upload(bucketName, s3folder + fileName, file);
             upload.waitForCompletion();
             System.out.println(fileName + " file was uploaded succesfully");
         return fileName;
     }
 
-    public Boolean removeFileFromS3(String bucketName, String key) {
+    public Boolean removeFileFromS3(String bucketName, String key, String s3Folder) {
         Boolean result = false;
-            if (s3.doesObjectExist(bucketName, key)) {
+            if (s3.doesObjectExist(bucketName, s3Folder + key)) {
                 System.out.println("Deleting an object");
-                s3.deleteObject(bucketName, key);
+                s3.deleteObject(bucketName, s3Folder + key);
                 System.out.println(key + " file was deleted succesfully");
                 result = true;
             } else
