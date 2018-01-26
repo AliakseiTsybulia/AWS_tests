@@ -14,42 +14,48 @@ import java.io.File;
 import java.util.Random;
 
 public class S3Services {
+    private static S3Services instance = new S3Services();
     AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_2).build();
     TransferManager tm = TransferManagerBuilder.standard().withS3Client(s3).build();
-    public String uploadFileToS3(String bucketName, String filePath, String s3folder) throws InterruptedException {
+
+    public static S3Services getInstance() {
+        if (instance == null) {
+            instance = new S3Services();
+        }
+        return instance;
+    }
+
+    public String uploadFileToS3(String bucketName, String filePath, String s3folder, boolean leaveOriginalFileName) {
+            Upload upload;
             File file = new File(filePath);
             String fileExtension = FilenameUtils.getExtension(file.getName());
             String fileName = String.valueOf(new Random().nextInt()) + "." + fileExtension;
-            System.out.println("Uploading a new object to S3 from a file");
-            Upload upload = tm.upload(bucketName, s3folder + fileName, file);
-            upload.waitForCompletion();
-            System.out.println(fileName + " file was uploaded succesfully");
+            if (leaveOriginalFileName)
+                upload = tm.upload(bucketName, s3folder + file.getName(), file);
+            else
+                upload = tm.upload(bucketName, s3folder + fileName, file);
+            try {
+                upload.waitForCompletion();
+            } catch (InterruptedException e) {
+                System.out.println(e.getMessage());
+            }
+            System.out.println(upload.getDescription() + ": Success");
         return fileName;
     }
 
-    public Boolean removeFileFromS3(String bucketName, String key, String s3Folder) {
-        Boolean result = false;
+    public void removeFileFromS3(String bucketName, String key, String s3Folder) {
             if (s3.doesObjectExist(bucketName, s3Folder + key)) {
                 System.out.println("Deleting an object");
                 s3.deleteObject(bucketName, s3Folder + key);
                 System.out.println(key + " file was deleted succesfully");
-                result = true;
             } else
                 System.out.println(key + " does not exist or was permanently removed");
-        return result;
     }
 
     public String getS3Events(String bucketName) {
-        String events = new String();
-            if (s3.doesBucketExistV2(bucketName)) {
-                BucketNotificationConfiguration notificationConfiguration =
-                        s3.getBucketNotificationConfiguration(bucketName);
-                events =
-                        JsonPath.parse(notificationConfiguration.toString()).read(
-                                "$.LambdaEvent.events").toString();
-                System.out.println(events);
-            } else
-                System.out.println(bucketName + " does not exist");
+        BucketNotificationConfiguration notificationConfiguration = s3.getBucketNotificationConfiguration(bucketName);
+        String events = JsonPath.parse(notificationConfiguration.toString()).read("$.LambdaEvent.events")
+                .toString();
         return events;
     }
 }
