@@ -8,11 +8,12 @@ import java.util.Properties;
 import java.io.IOException;
 
 public class AWSItemName {
-    private static InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(
+    private LambdaServices lambdaServices = new LambdaServices();
+    private InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(
             "AWS.properties");
-    private static Properties properties = new Properties();
+    private Properties properties = new Properties();
 
-    public static String getAWSItemName(AWSItems parameter) {
+    public String getAWSItemName(AWSItems parameter) {
         try {
             properties.load(is);
         } catch (IOException e) {
@@ -27,7 +28,7 @@ public class AWSItemName {
                 propertyValue = properties.getProperty("lambda_function_name");
                 break;
             case "table_name":
-                propertyValue = LambdaServices.getInstance().getLambdaConfigVariables(
+                propertyValue = lambdaServices.getLambdaConfigVariables(
                         getAWSItemName(AWSItems.function_name))
                         .get("InventoryLambda_DYNAMODB_NAME");
                 break;

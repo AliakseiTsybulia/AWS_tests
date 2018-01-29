@@ -6,26 +6,24 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.document.*;
 import com.amazonaws.services.dynamodbv2.document.spec.DeleteItemSpec;
 import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec;
+import com.amazonaws.services.dynamodbv2.model.DeleteItemResult;
 import com.amazonaws.services.dynamodbv2.xspec.ExpressionSpecBuilder;
+import com.epam.gomel.test_parameters.AWSItemName;
+import com.epam.gomel.test_parameters.AWSItems;
 import org.awaitility.core.ConditionTimeoutException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.StreamSupport;
 
 import static com.amazonaws.services.dynamodbv2.xspec.ExpressionSpecBuilder.S;
 import static org.awaitility.Awaitility.await;
 
 public class DynamoDBservices {
-    private static DynamoDBservices instance = new DynamoDBservices();
-    private AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().withRegion(Regions.US_EAST_2).build();
+    public static AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard().withRegion(Regions.US_EAST_2).build();
     private DynamoDB dynamo = new DynamoDB(client);
+    private String tableName = new AWSItemName().getAWSItemName(AWSItems.table_name);
     String searchKey = "filePath";
-
-    public static DynamoDBservices getInstance() {
-        if (instance == null) {
-            instance = new DynamoDBservices();
-        }
-        return instance;
-    }
 
     public ItemCollection<QueryOutcome> getItemCollectionFromDynamoDBTableByFileName(String tableName,
                                                                                      String fileName) {
@@ -37,23 +35,18 @@ public class DynamoDBservices {
         return items;
     }
 
-    public boolean deleteNewDynamoDBTableItemByFileName(String tableName, String fileName) {
-        boolean result = true;
+    public List<DeleteItemResult> deleteNewDynamoDBTableItemByFileName(String fileName) {
+        List<DeleteItemResult> results = new ArrayList<>();
         Table table = dynamo.getTable(tableName);
         ItemCollection<QueryOutcome> items = getItemCollectionFromDynamoDBTableByFileName(tableName, fileName);
-        if (items != null) {
-            StreamSupport.stream(items.spliterator(), false).forEach(item -> {
-                DeleteItemSpec deleteItemSpec = new DeleteItemSpec()
+        StreamSupport.stream(items.spliterator(), false).forEach(item -> {
+            DeleteItemSpec deleteItemSpec = new DeleteItemSpec()
                     .withPrimaryKey(new PrimaryKey(
                             "packageId", item.getString("packageId"),
                             "originTimeStamp", Long.valueOf(item.getJSON("originTimeStamp"))));
-                table.deleteItem(deleteItemSpec);
-            });
-        } else {
-            result = false;
-            System.err.println("Item with file name '" + fileName + "' is not exist");
-        }
-        return result;
+            results.add(table.deleteItem(deleteItemSpec).getDeleteItemResult());
+        });
+        return results;
     }
 
     public boolean CheckDynamoDBTableProperties(String tableName, String expectedProperties) {
