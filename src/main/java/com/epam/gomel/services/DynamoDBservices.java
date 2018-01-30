@@ -60,7 +60,7 @@ public class DynamoDBservices {
         return actualProperties.equals(expectedProperties);
     }
 
-    public boolean waitDynamoDBtableItemsByFileName(String tableName, String fileName, int itemCount) {
+    public boolean waitDynamoDBtableItemsByFileName(String fileName, int itemCount) {
         boolean result = true;
         try {
             await().until(() -> StreamSupport.stream(getItemCollectionFromDynamoDBTableByFileName(tableName, fileName)
