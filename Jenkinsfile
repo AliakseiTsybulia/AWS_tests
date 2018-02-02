@@ -2,6 +2,7 @@
 pipeline {
     agent {
         node {
+          label 'Test'
           customWorkspace 'C:/projects/workspace'
         }
     }
