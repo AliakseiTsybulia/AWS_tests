@@ -1,8 +1,21 @@
 #!/usr/bin/env groovy
-def gradle(command) {
-    sh "./gradlew ${command}"
-}
-
-node {
-    gradle 'build'
+pipeline {
+    agent {
+        node {
+          label 'my-defined-label'
+          customWorkspace 'C:/projects/workspace'
+        }
     }
+    stages {
+        stage ('Cleaning stage') {
+            steps {
+                    sh './gradlew clean'
+            }
+        }
+        stage ('Testing stage') {
+            steps {
+                    sh './gradlew test'
+            }
+        }
+    }
+}
