@@ -5,12 +5,12 @@ pipeline {
     stages {
         stage ('Cleaning stage') {
             steps {
-                    sh 'gradle clean'
+                    sh './gradlew clean'
             }
         }
         stage ('Testing stage') {
             steps {
-                    sh 'gradle test'
+                    sh './gradlew test'
             }
         }
     }
