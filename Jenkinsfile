@@ -1,11 +1,6 @@
 #!/usr/bin/env groovy
 pipeline {
-    agent {
-        node {
-          label 'Test'
-          customWorkspace 'C:/projects/workspace'
-        }
-    }
+    agent any
     stages {
         stage ('Cleaning stage') {
             steps {
