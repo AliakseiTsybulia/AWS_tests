@@ -9,7 +9,7 @@ pipeline {
         }
         stage ('Testing stage') {
             steps {
-                    bat 'gradlew test --info'
+                    bat 'gradlew junitPlatformTest'
             }
         }
     }
