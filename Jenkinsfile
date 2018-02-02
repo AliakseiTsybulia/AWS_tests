@@ -4,12 +4,12 @@ pipeline {
     stages {
         stage ('Cleaning stage') {
             steps {
-                    bat './gradlew clean'
+                    bat 'gradlew clean'
             }
         }
         stage ('Testing stage') {
             steps {
-                    bat './gradlew test'
+                    bat 'gradlew test'
             }
         }
     }
