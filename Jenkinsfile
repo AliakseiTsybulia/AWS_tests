@@ -5,3 +5,4 @@ def gradle(command) {
 
 node {
     gradle 'clean'
+    }
