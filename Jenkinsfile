@@ -4,5 +4,5 @@ def gradle(command) {
 }
 
 node {
-    gradle 'clean'
+    gradle 'build'
     }
