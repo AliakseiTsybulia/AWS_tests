@@ -2,7 +2,6 @@
 pipeline {
     agent {
         node {
-          label 'my-defined-label'
           customWorkspace 'C:/projects/workspace'
         }
     }
