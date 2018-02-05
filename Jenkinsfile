@@ -17,6 +17,7 @@ void test() {
 node {
     stage('Test') {
         test()
+    }
 }
 
 
