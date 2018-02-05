@@ -7,7 +7,7 @@ node {
             sh "'${GRADLE_HOME}/bin/mvn' clean"
         } else {
             checkout scm
-            println(env.GIT_BRANCH)
+            println('env.GIT_BRANCH')
             gradle('clean test')
         }
     }
