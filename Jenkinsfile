@@ -10,7 +10,7 @@ node {
                 gradle('clean test')
             } catch (error) {
                println 'Could not start tests. Proceeding anyways...'
-               println err
+               println error
             }
         }
     }
