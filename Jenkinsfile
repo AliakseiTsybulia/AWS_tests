@@ -8,11 +8,8 @@ def gradle(command) {
 
 void test() {
     stage name: 'test', concurrency: 1
-    try {
-        gradle 'clean test'
-    } finally {
-        step $class: 'JUnitResultArchiver', allowEmptyResults: true, testResults: '**/build/test-results/TEST-*.xml'
-    }
+    gradle 'clean test'
+
 }
 
 node {
