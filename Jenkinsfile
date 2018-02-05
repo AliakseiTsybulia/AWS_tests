@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-def GRADLE_HOME = tool name: 'gradle-4.4.1', type: 'gradle'
+GRADLE_HOME = tool name: 'gradle-4.4.1', type: 'gradle'
 
 def gradle(command) {
     bat "${GRADLE_HOME}/bin/gradle ${command}"
@@ -16,7 +16,7 @@ void test() {
 }
 
 node {
-    def name = env.BRANCH_NAME
+    name = env.BRANCH_NAME
     if (name.startsWith('master')) {
         test()
     } else {
