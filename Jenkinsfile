@@ -1,4 +1,12 @@
 #!/usr/bin/env groovy
+node {
+    def name = env.BRANCH_NAME
+    if (name.startsWith('master')) {
+        test()
+    } else {
+        error "Don't know what to do with this branch: ${name}"
+    }
+}
 
 def GRADLE_HOME = tool name: 'gradle-4.4.1', type: 'gradle'
 
@@ -15,8 +23,3 @@ void test() {
     }
 }
 
-node {
-
-        test()
-    
-}
